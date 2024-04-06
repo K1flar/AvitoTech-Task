@@ -34,7 +34,7 @@ type Updater[K comparable, V any] interface {
 	GetNewValue(K) (V, bool)
 }
 
-// New создает менеджер кеша на базе алгоритма LFU с ёмкостью cap, который будет обновляться,
+// NewWithUpdateInterval создает менеджер кеша на базе алгоритма LFU с ёмкостью cap, который будет обновляться,
 // получая данные из updater раз в интервал updateInterval
 func NewWithUpdateInterval[K comparable, V any](cap int, updater Updater[K, V], updateInterval time.Duration) *LFUCache[K, V] {
 	c := New[K, V](cap)
