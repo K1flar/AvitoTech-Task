@@ -1,10 +1,11 @@
 package dlist
 
 type Node[K comparable, V any] struct {
-	Key   K
-	Value V
-	Prev  *Node[K, V]
-	Next  *Node[K, V]
+	Key       K
+	Value     V
+	Frequency int
+	Prev      *Node[K, V]
+	Next      *Node[K, V]
 }
 
 func NewNode[K comparable, V any](key K, value V) *Node[K, V] {
@@ -38,9 +39,9 @@ func (l *DLinkedList[K, V]) Append(node *Node[K, V]) {
 	l.len++
 }
 
-func (l *DLinkedList[K, V]) Pop(node *Node[K, V]) {
+func (l *DLinkedList[K, V]) Pop(node *Node[K, V]) *Node[K, V] {
 	if l.len == 0 {
-		return
+		return nil
 	}
 
 	if node == nil {
@@ -50,6 +51,8 @@ func (l *DLinkedList[K, V]) Pop(node *Node[K, V]) {
 	node.Prev.Next = node.Next
 	node.Next.Prev = node.Prev
 	l.len--
+
+	return node
 }
 
 func (l *DLinkedList[K, V]) Len() int {
