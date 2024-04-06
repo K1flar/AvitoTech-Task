@@ -1,0 +1,359 @@
+package lfu
+
+import (
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestLFUSet(t *testing.T) {
+	type Element struct {
+		Key       int
+		Val       int
+		Frequency int
+	}
+	tcases := []struct {
+		name          string
+		cap           int
+		init          func(cap int) *LFUCache[int, int]
+		expectedLen   int
+		expectedCap   int
+		expectedPairs []Element
+	}{
+		{
+			name: "Negative cap",
+			cap:  -1,
+			init: func(cap int) *LFUCache[int, int] {
+				return New[int, int](cap)
+			},
+			expectedCap: DefaultCacheCapacity,
+		},
+		{
+			name: "Empty cache",
+			cap:  10,
+			init: func(cap int) *LFUCache[int, int] {
+				return New[int, int](cap)
+			},
+			expectedCap: 10,
+		},
+		{
+			name: "Correct",
+			cap:  10,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				c.Set(1, 1)
+				return c
+			},
+			expectedLen:   1,
+			expectedCap:   10,
+			expectedPairs: []Element{{1, 1, 1}},
+		},
+		{
+			name: "Full",
+			cap:  5,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				return c
+			},
+			expectedLen:   5,
+			expectedCap:   5,
+			expectedPairs: []Element{{0, 0, 1}, {1, 1, 1}, {2, 2, 1}, {3, 3, 1}, {4, 4, 1}},
+		},
+		{
+			name: "Displacing the first",
+			cap:  5,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap+1; i++ {
+					c.Set(i, i)
+				}
+				return c
+			},
+			expectedLen:   5,
+			expectedCap:   5,
+			expectedPairs: []Element{{1, 1, 1}, {2, 2, 1}, {3, 3, 1}, {4, 4, 1}, {5, 5, 1}},
+		},
+		{
+			name: "Updating existing",
+			cap:  5,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				c.Set(3, 100)
+				return c
+			},
+			expectedLen:   5,
+			expectedCap:   5,
+			expectedPairs: []Element{{0, 0, 1}, {1, 1, 1}, {2, 2, 1}, {3, 100, 2}, {4, 4, 1}},
+		},
+	}
+
+	for _, tc := range tcases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := tc.init(tc.cap)
+			assert.Equal(t, tc.expectedLen, c.Len())
+			assert.Equal(t, tc.expectedCap, c.Cap())
+
+			for _, e := range tc.expectedPairs {
+				assert.Contains(t, c.data, e.Key)
+				assert.Equal(t, c.data[e.Key].Value, e.Val)
+				assert.Equal(t, c.data[e.Key].Frequency, e.Frequency)
+			}
+		})
+	}
+}
+
+func TestLFUGet(t *testing.T) {
+	tcases := []struct {
+		name              string
+		cap               int
+		key               int
+		init              func(cap int) *LFUCache[int, int]
+		expectedVal       int
+		expectedExst      bool
+		expectedFrequency int
+	}{
+		{
+			name: "Non-existent element",
+			cap:  5,
+			key:  1000,
+			init: func(cap int) *LFUCache[int, int] {
+				return New[int, int](cap)
+			},
+		},
+		{
+			name: "Correct",
+			cap:  5,
+			key:  3,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				return c
+			},
+			expectedVal:       3,
+			expectedExst:      true,
+			expectedFrequency: 2,
+		},
+		{
+			name: "After accessing",
+			cap:  5,
+			key:  3,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				c.Set(3, 100)
+				c.Set(3, 100)
+				c.Set(3, 1000)
+
+				return c
+			},
+			expectedVal:       1000,
+			expectedExst:      true,
+			expectedFrequency: 5,
+		},
+	}
+
+	for _, tc := range tcases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := tc.init(tc.cap)
+			actualVal, actualExst := c.Get(tc.key)
+			assert.Equal(t, tc.expectedVal, actualVal)
+			assert.Equal(t, tc.expectedExst, actualExst)
+
+			if tc.expectedExst {
+				assert.Contains(t, c.data, tc.key)
+				assert.Equal(t, c.data[tc.key].Frequency, tc.expectedFrequency)
+			}
+		})
+	}
+}
+
+func TestLFUGetFrequency(t *testing.T) {
+	tcases := []struct {
+		name              string
+		cap               int
+		key               int
+		init              func(cap int) *LFUCache[int, int]
+		expectedExst      bool
+		expectedFrequency int
+	}{
+		{
+			name: "Non-existent element",
+			cap:  5,
+			key:  1000,
+			init: func(cap int) *LFUCache[int, int] {
+				return New[int, int](cap)
+			},
+		},
+		{
+			name: "Correct",
+			cap:  5,
+			key:  3,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				return c
+			},
+			expectedExst:      true,
+			expectedFrequency: 1,
+		},
+		{
+			name: "After accessing",
+			cap:  5,
+			key:  3,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				c.Get(3)
+				c.Get(3)
+				c.Get(3)
+
+				return c
+			},
+			expectedExst:      true,
+			expectedFrequency: 4,
+		},
+	}
+
+	for _, tc := range tcases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := tc.init(tc.cap)
+			actualFrequency, actualExst := c.GetFrequency(tc.key)
+			assert.Equal(t, tc.expectedExst, actualExst)
+			assert.Equal(t, actualFrequency, tc.expectedFrequency)
+		})
+	}
+}
+
+func TestLFUDelete(t *testing.T) {
+	tcases := []struct {
+		name        string
+		cap         int
+		key         int
+		init        func(cap int) *LFUCache[int, int]
+		expectedRes bool
+	}{
+		{
+			name: "Non-existent element",
+			cap:  5,
+			key:  1000,
+			init: func(cap int) *LFUCache[int, int] {
+				return New[int, int](cap)
+			},
+		},
+		{
+			name: "Correct",
+			cap:  5,
+			key:  3,
+			init: func(cap int) *LFUCache[int, int] {
+				c := New[int, int](cap)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				return c
+			},
+			expectedRes: true,
+		},
+	}
+
+	for _, tc := range tcases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := tc.init(tc.cap)
+			actualRes := c.Delete(tc.key)
+			assert.Equal(t, tc.expectedRes, actualRes)
+			assert.NotContains(t, c.data, tc.key)
+		})
+	}
+}
+
+type updater struct {
+	f func(key int) (int, bool)
+}
+
+func (u *updater) GetNewValue(key int) (int, bool) {
+	return u.f(key)
+}
+
+func TestLFUUpdateWorker(t *testing.T) {
+	type Pair struct {
+		Key int
+		Val int
+	}
+	type updaterFunc func(key int) (int, bool)
+	tcases := []struct {
+		name             string
+		cap              int
+		updater          updaterFunc
+		updateInterval   time.Duration
+		init             func(cap int, updater Updater[int, int], updateInterval time.Duration) *LFUCache[int, int]
+		expectedLen      int
+		expectedElements []Pair
+	}{
+		{
+			name: "Correct",
+			cap:  5,
+			updater: func(key int) (int, bool) {
+				return key + 1, true
+			},
+			updateInterval: time.Second,
+			init: func(cap int, updater Updater[int, int], updateInterval time.Duration) *LFUCache[int, int] {
+				c := NewWithUpdateInterval(cap, updater, updateInterval)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				return c
+			},
+			expectedLen:      5,
+			expectedElements: []Pair{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}},
+		},
+		{
+			name: "Delete element",
+			cap:  5,
+			updater: func(key int) (int, bool) {
+				if key == 0 {
+					return 0, false
+				}
+				return key + 1, true
+			},
+			updateInterval: time.Second,
+			init: func(cap int, updater Updater[int, int], updateInterval time.Duration) *LFUCache[int, int] {
+				c := NewWithUpdateInterval(cap, updater, updateInterval)
+				for i := 0; i < cap; i++ {
+					c.Set(i, i)
+				}
+				return c
+			},
+			expectedLen:      4,
+			expectedElements: []Pair{{1, 2}, {2, 3}, {3, 4}, {4, 5}},
+		},
+	}
+
+	for _, tc := range tcases {
+		t.Run(tc.name, func(t *testing.T) {
+			u := &updater{f: tc.updater}
+			c := tc.init(tc.cap, u, tc.updateInterval)
+
+			time.Sleep(tc.updateInterval + time.Second)
+
+			assert.Equal(t, tc.expectedLen, c.Len())
+			for _, p := range tc.expectedElements {
+				assert.Contains(t, c.data, p.Key)
+				assert.Equal(t, c.data[p.Key].Value, p.Val)
+			}
+		})
+	}
+}
