@@ -2,6 +2,8 @@ package main
 
 import (
 	"banner_service/api"
+	"banner_service/internal/config"
+	"banner_service/internal/repositories/postgres"
 	"banner_service/pkg/mux"
 	"fmt"
 	"os"
@@ -43,12 +45,18 @@ func (s *Server) GetUserBanner(w http.ResponseWriter, r *http.Request, params ap
 	w.Write([]byte("GetUserBanner"))
 }
 
+const configPath = "configs/config.yaml"
+
 func main() {
+	cfg := config.New(configPath)
+
+	repository, err := postgres.New(cfg.Database)
+	exitOnError(err)
+
+	_ = repository
+
 	swagger, err := api.GetSwagger()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading swagger spec\n: %s", err)
-		os.Exit(1)
-	}
+	exitOnError(err)
 	swagger.Servers = nil
 
 	r := mux.New()
@@ -62,4 +70,11 @@ func main() {
 	r.HandleFunc("/swagger/", httpSwagger.Handler(httpSwagger.URL("/swagger.json")))
 
 	http.ListenAndServe(":8080", r)
+}
+
+func exitOnError(err error) {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
 }
