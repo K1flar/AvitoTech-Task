@@ -9,3 +9,13 @@ type Banner struct {
 	UpdatedAt time.Time
 	IsActive  bool
 }
+
+type BannerKey struct {
+	FeatureID uint32
+	TagID     uint32
+}
+
+type BannerWithKey struct {
+	BannerKey
+	Banner
+}

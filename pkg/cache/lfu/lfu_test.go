@@ -276,74 +276,55 @@ func TestLFUDelete(t *testing.T) {
 	}
 }
 
-type updater struct {
-	f func(key int) (int, bool)
-}
-
-func (u *updater) GetNewValue(key int) (int, bool) {
-	return u.f(key)
-}
-
 func TestLFUUpdateWorker(t *testing.T) {
 	type Pair struct {
 		Key int
 		Val int
 	}
-	type updaterFunc func(key int) (int, bool)
 	tcases := []struct {
 		name             string
 		cap              int
-		updater          updaterFunc
-		updateInterval   time.Duration
-		init             func(cap int, updater Updater[int, int], updateInterval time.Duration) *LFUCache[int, int]
+		valueLifeTime    time.Duration
+		init             func(cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[int, int]
 		expectedLen      int
 		expectedElements []Pair
 	}{
 		{
-			name: "Correct",
-			cap:  5,
-			updater: func(key int) (int, bool) {
-				return key + 1, true
-			},
-			updateInterval: time.Second,
-			init: func(cap int, updater Updater[int, int], updateInterval time.Duration) *LFUCache[int, int] {
-				c := NewWithUpdateInterval(cap, updater, updateInterval)
+			name:          "Correct",
+			cap:           5,
+			valueLifeTime: time.Millisecond,
+			init: func(cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[int, int] {
+				c := NewWithLifeCycle[int, int](cap, valueLifeTime)
 				for i := 0; i < cap; i++ {
 					c.Set(i, i)
 				}
 				return c
 			},
-			expectedLen:      5,
-			expectedElements: []Pair{{0, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}},
+			expectedLen:      0,
+			expectedElements: []Pair{},
 		},
 		{
-			name: "Delete element",
-			cap:  5,
-			updater: func(key int) (int, bool) {
-				if key == 0 {
-					return 0, false
-				}
-				return key + 1, true
-			},
-			updateInterval: time.Second,
-			init: func(cap int, updater Updater[int, int], updateInterval time.Duration) *LFUCache[int, int] {
-				c := NewWithUpdateInterval(cap, updater, updateInterval)
-				for i := 0; i < cap; i++ {
+			name:          "Without one",
+			cap:           5,
+			valueLifeTime: time.Second,
+			init: func(cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[int, int] {
+				c := NewWithLifeCycle[int, int](cap, valueLifeTime)
+				for i := 0; i < cap-1; i++ {
 					c.Set(i, i)
 				}
+				time.Sleep(time.Second / 2)
+				c.Set(5, 5)
 				return c
 			},
-			expectedLen:      4,
-			expectedElements: []Pair{{1, 2}, {2, 3}, {3, 4}, {4, 5}},
+			expectedLen:      1,
+			expectedElements: []Pair{{5, 5}},
 		},
 	}
 
 	for _, tc := range tcases {
 		t.Run(tc.name, func(t *testing.T) {
-			u := &updater{f: tc.updater}
-			c := tc.init(tc.cap, u, tc.updateInterval)
-
-			time.Sleep(tc.updateInterval + time.Second)
+			c := tc.init(tc.cap, tc.valueLifeTime)
+			time.Sleep(tc.valueLifeTime + time.Millisecond)
 
 			assert.Equal(t, tc.expectedLen, c.Len())
 			for _, p := range tc.expectedElements {
