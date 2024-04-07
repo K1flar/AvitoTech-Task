@@ -184,7 +184,6 @@ func TestLFUGetFrequency(t *testing.T) {
 		cap               int
 		key               int
 		init              func(cap int) *LFUCache[int, int]
-		expectedExst      bool
 		expectedFrequency int
 	}{
 		{
@@ -206,7 +205,6 @@ func TestLFUGetFrequency(t *testing.T) {
 				}
 				return c
 			},
-			expectedExst:      true,
 			expectedFrequency: 1,
 		},
 		{
@@ -224,7 +222,6 @@ func TestLFUGetFrequency(t *testing.T) {
 
 				return c
 			},
-			expectedExst:      true,
 			expectedFrequency: 4,
 		},
 	}
@@ -232,8 +229,7 @@ func TestLFUGetFrequency(t *testing.T) {
 	for _, tc := range tcases {
 		t.Run(tc.name, func(t *testing.T) {
 			c := tc.init(tc.cap)
-			actualFrequency, actualExst := c.GetFrequency(tc.key)
-			assert.Equal(t, tc.expectedExst, actualExst)
+			actualFrequency := c.GetFrequency(tc.key)
 			assert.Equal(t, actualFrequency, tc.expectedFrequency)
 		})
 	}
