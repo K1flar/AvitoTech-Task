@@ -86,15 +86,15 @@ func (c *LFUCache[K, V]) Get(key K) (value V, ok bool) {
 }
 
 // GetFrequency возвращает частоту обращения к элементу
-func (c *LFUCache[K, V]) GetFrequency(key K) (freq int, ok bool) {
+func (c *LFUCache[K, V]) GetFrequency(key K) int {
 	c.Lock()
 	defer c.Unlock()
 
 	if _, ok := c.data[key]; !ok {
-		return 0, false
+		return 0
 	}
 
-	return c.data[key].Frequency, true
+	return c.data[key].Frequency
 }
 
 func (c *LFUCache[K, V]) Delete(key K) bool {
