@@ -52,6 +52,7 @@ func (c *LFUCache[K, V]) Set(key K, val V) {
 
 	if node, ok := c.data[key]; ok {
 		node.Value = val
+		node.UpdatedAt = time.Now()
 		c.update(node)
 		return
 	}
@@ -98,6 +99,8 @@ func (c *LFUCache[K, V]) GetFrequency(key K) int {
 	return c.data[key].Frequency
 }
 
+// Delete удаляет элемент по ключу, если он есть,
+// возвращает true, если элемент удален и false - в противном случае
 func (c *LFUCache[K, V]) Delete(key K) bool {
 	if _, ok := c.data[key]; !ok {
 		return false
@@ -125,7 +128,6 @@ func (c *LFUCache[K, V]) update(node *dlist.Node[K, V]) {
 	if c.freq[node.Frequency].Len() == 0 {
 		c.minFrequency++
 	}
-	node.UpdatedAt = time.Now()
 	node.Frequency++
 	c.add(node)
 }

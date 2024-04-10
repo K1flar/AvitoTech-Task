@@ -2,14 +2,17 @@ package postgres
 
 import (
 	"banner_service/internal/config"
+	"banner_service/internal/repositories/postgres/bannerrepo"
 	"database/sql"
 
 	_ "github.com/lib/pq"
 )
 
-type Repository struct{}
+type Repository struct {
+	*bannerrepo.BannerRepository
+}
 
-func New(cfg config.Database) (*Repository, error) {
+func New(cfg *config.Database) (*Repository, error) {
 	db, err := sql.Open("postgres", cfg.DSN)
 	if err != nil {
 		return nil, err
@@ -21,5 +24,7 @@ func New(cfg config.Database) (*Repository, error) {
 
 	db.SetMaxOpenConns(cfg.MaxOpenConns)
 
-	return &Repository{}, nil
+	return &Repository{
+		bannerrepo.New(cfg, db),
+	}, nil
 }

@@ -285,6 +285,7 @@ func TestLFUUpdateWorker(t *testing.T) {
 		name             string
 		cap              int
 		valueLifeTime    time.Duration
+		timeForSleep     time.Duration
 		init             func(cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[int, int]
 		expectedLen      int
 		expectedElements []Pair
@@ -293,6 +294,7 @@ func TestLFUUpdateWorker(t *testing.T) {
 			name:          "Correct",
 			cap:           5,
 			valueLifeTime: time.Millisecond,
+			timeForSleep:  2 * time.Millisecond,
 			init: func(cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[int, int] {
 				c := NewWithLifeCycle[int, int](cap, valueLifeTime)
 				for i := 0; i < cap; i++ {
@@ -307,6 +309,7 @@ func TestLFUUpdateWorker(t *testing.T) {
 			name:          "Without one",
 			cap:           5,
 			valueLifeTime: time.Second,
+			timeForSleep:  time.Second/2 + time.Millisecond,
 			init: func(cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[int, int] {
 				c := NewWithLifeCycle[int, int](cap, valueLifeTime)
 				for i := 0; i < cap-1; i++ {
@@ -324,7 +327,7 @@ func TestLFUUpdateWorker(t *testing.T) {
 	for _, tc := range tcases {
 		t.Run(tc.name, func(t *testing.T) {
 			c := tc.init(tc.cap, tc.valueLifeTime)
-			time.Sleep(tc.valueLifeTime + time.Millisecond)
+			time.Sleep(tc.timeForSleep)
 
 			assert.Equal(t, tc.expectedLen, c.Len())
 			for _, p := range tc.expectedElements {

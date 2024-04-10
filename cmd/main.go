@@ -50,10 +50,9 @@ const configPath = "configs/config.yaml"
 func main() {
 	cfg := config.New(configPath)
 
-	repository, err := postgres.New(cfg.Database)
-	exitOnError(err)
-
+	repository, err := postgres.New(&cfg.Database)
 	_ = repository
+	exitOnError(err)
 
 	swagger, err := api.GetSwagger()
 	exitOnError(err)

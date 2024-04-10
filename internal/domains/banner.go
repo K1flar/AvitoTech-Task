@@ -8,6 +8,7 @@ type Banner struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	IsActive  bool
+	FeatureID uint32
 }
 
 type BannerKey struct {
@@ -15,7 +16,7 @@ type BannerKey struct {
 	TagID     uint32
 }
 
-type BannerWithKey struct {
-	BannerKey
+type BannerWithTagIDs struct {
 	Banner
+	TagIDs []uint32
 }

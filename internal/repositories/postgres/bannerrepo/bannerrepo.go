@@ -1,26 +1,26 @@
 package bannerrepo
 
-// import (
-// 	"banner_service/internal/domains"
-// 	"database/sql"
-// )
+import (
+	"banner_service/internal/config"
+	"database/sql"
+	"fmt"
+)
 
-// type BannerRepository struct {
-// 	db *sql.DB
-// }
+var (
+	ErrNotFound         = fmt.Errorf("banner not found")
+	ErrNotJSON          = fmt.Errorf("content is not json")
+	ErrInvalidFeatureID = fmt.Errorf("feature id must be positive")
+	ErrInvalidTagID     = fmt.Errorf("tag id must be positive")
+)
 
-// func New(db *sql.DB) *BannerRepository {
-// 	return &BannerRepository{
-// 		db: db,
-// 	}
-// }
+type BannerRepository struct {
+	db  *sql.DB
+	cfg *config.Database
+}
 
-// func (r *BannerRepository) GetBannerByFeatureAndTagID(featureID, tagID uint32) *domains.Banner
-
-// func (r *BannerRepository) GetBannersByKeys(keys []domains.BannerKey) (*domains.BannerWithKey, error) {
-// 	fn := `BannerRepository.GetBannersByKeys`
-
-// 	stmt := `
-// 		SELECT
-// 	`
-// }
+func New(cfg *config.Database, db *sql.DB) *BannerRepository {
+	return &BannerRepository{
+		db:  db,
+		cfg: cfg,
+	}
+}

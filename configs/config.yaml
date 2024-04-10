@@ -3,3 +3,4 @@ env: local
 database:
   dsn: postgres://postgres:postgres@localhost:5432/banner_service?sslmode=disable
   maxOpenConns: 10
+  numberOfBannerVersions: 3
