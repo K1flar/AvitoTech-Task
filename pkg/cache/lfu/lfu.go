@@ -17,6 +17,11 @@ type LFUCache[K comparable, V any] struct {
 	cap          int
 }
 
+type LFUCacheWithLifeCycle[K comparable, V any] struct {
+	valueLifeTime time.Duration
+	*LFUCache[K, V]
+}
+
 // New создает менеджер кеша на базе алгоритма LFU с ёмкостью cap
 func New[K comparable, V any](cap int) *LFUCache[K, V] {
 	if cap <= 0 {
@@ -30,15 +35,11 @@ func New[K comparable, V any](cap int) *LFUCache[K, V] {
 	}
 }
 
-type Updater[K comparable, V any] interface {
-	GetNewValue(K) (V, bool)
-}
-
-// NewWithUpdateInterval создает менеджер кеша на базе алгоритма LFU с ёмкостью cap, который будет обновляться,
-// получая данные из updater раз в интервал updateInterval
-func NewWithUpdateInterval[K comparable, V any](cap int, updater Updater[K, V], updateInterval time.Duration) *LFUCache[K, V] {
-	c := New[K, V](cap)
-	go c.updateWorker(updater, updateInterval)
+// NewWithLifeCycle создает менеджер кеша на базе алгоритма LFU с ёмкостью cap, который будет очищать
+// данные из кеша по истечению срока жизни valueLifeTime
+func NewWithLifeCycle[K comparable, V any](cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[K, V] {
+	c := &LFUCacheWithLifeCycle[K, V]{valueLifeTime, New[K, V](cap)}
+	go c.updateWorker()
 	return c
 }
 
@@ -51,6 +52,7 @@ func (c *LFUCache[K, V]) Set(key K, val V) {
 
 	if node, ok := c.data[key]; ok {
 		node.Value = val
+		node.UpdatedAt = time.Now()
 		c.update(node)
 		return
 	}
@@ -97,6 +99,8 @@ func (c *LFUCache[K, V]) GetFrequency(key K) int {
 	return c.data[key].Frequency
 }
 
+// Delete удаляет элемент по ключу, если он есть,
+// возвращает true, если элемент удален и false - в противном случае
 func (c *LFUCache[K, V]) Delete(key K) bool {
 	if _, ok := c.data[key]; !ok {
 		return false
@@ -135,22 +139,23 @@ func (c *LFUCache[K, V]) add(node *dlist.Node[K, V]) {
 	c.freq[node.Frequency].Append(node)
 }
 
-func (c *LFUCache[K, V]) updateWorker(updater Updater[K, V], updateInterval time.Duration) {
-	update := time.After(updateInterval)
+func (c *LFUCacheWithLifeCycle[K, V]) updateWorker() {
+	update := time.After(c.valueLifeTime)
 
 	for {
-		select {
-		case <-update:
-			for k := range c.data {
-				v, ok := updater.GetNewValue(k)
-				if !ok {
-					c.Delete(k)
-					continue
-				}
-				c.data[k].Value = v
+		<-update
+		delayNextStart := c.valueLifeTime
+		for k, n := range c.data {
+			lifeTime := time.Since(n.UpdatedAt)
+			if lifeTime >= c.valueLifeTime {
+				c.Delete(k)
+				continue
 			}
-			update = time.After(updateInterval)
 
+			if lifeTime < delayNextStart {
+				delayNextStart = lifeTime
+			}
 		}
+		update = time.After(delayNextStart)
 	}
 }

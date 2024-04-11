@@ -1,17 +1,21 @@
 package dlist
 
+import "time"
+
 type Node[K comparable, V any] struct {
 	Key       K
 	Value     V
 	Frequency int
+	UpdatedAt time.Time
 	Prev      *Node[K, V]
 	Next      *Node[K, V]
 }
 
 func NewNode[K comparable, V any](key K, value V) *Node[K, V] {
 	return &Node[K, V]{
-		Key:   key,
-		Value: value,
+		Key:       key,
+		Value:     value,
+		UpdatedAt: time.Now(),
 	}
 }
 
