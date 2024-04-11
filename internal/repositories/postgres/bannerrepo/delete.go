@@ -12,8 +12,8 @@ const (
 	`
 )
 
-func (r *BannerRepository) DeleteByID(ctx context.Context, id uint32) error {
-	fn := `BannerRepository.DeleteByID`
+func (r *bannerRepository) DeleteBannerByID(ctx context.Context, id uint32) error {
+	fn := `bannerRepository.DeleteByID`
 
 	res, err := r.db.ExecContext(ctx, stmtDeleteBanner, id)
 	if err != nil {

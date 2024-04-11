@@ -12,31 +12,29 @@ const (
 	stmtCreateFeature = `
 		INSERT INTO features(id)
 		VALUES ($1)
-		ON CONFLICT (id) DO NOTHING;
+		ON CONFLICT (id) DO NOTHING
 	`
 
 	stmtCreateTags = `
 		INSERT INTO tags(id)
 		SELECT unnest($1::INTEGER[])
-		ON CONFLICT (id) DO NOTHING;
+		ON CONFLICT (id) DO NOTHING
 	`
 
 	stmtCreateBanner = `
 		INSERT INTO banners(content, is_active, feature_id)
 		VALUES ($1::JSONB, $2, $3)
-		RETURNING id;
+		RETURNING id
 	`
 
 	stmtCreateBannerRelations = `
-		INSERT INTO banners_x_tags(tag_id, banner_id, banner_updated_dttm)
-		SELECT unnest($1::INTEGER[]), id, MAX(updated_dttm)
-		FROM banners WHERE id=$2
-		GROUP BY id;
+		INSERT INTO banner_x_tag(banner_id, tag_id, feature_id)
+		SELECT $1 AS banner_id, unnest($2::INTEGER[]), $3
 	`
 )
 
-func (r *BannerRepository) CreateBanner(ctx context.Context, banner *domains.BannerWithTagIDs) (uint32, error) {
-	fn := `BannerRepository.CreateBanner`
+func (r *bannerRepository) CreateBanner(ctx context.Context, banner *domains.BannerWithTagIDs) (uint32, error) {
+	fn := `bannerRepository.CreateBanner`
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -46,9 +44,6 @@ func (r *BannerRepository) CreateBanner(ctx context.Context, banner *domains.Ban
 	_, err = tx.ExecContext(ctx, stmtCreateFeature, banner.FeatureID)
 	if err != nil {
 		tx.Rollback()
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pq.ErrorCode("23514") {
-			return 0, fmt.Errorf("%s: %w", fn, ErrInvalidFeatureID)
-		}
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
@@ -59,9 +54,6 @@ func (r *BannerRepository) CreateBanner(ctx context.Context, banner *domains.Ban
 	_, err = tx.ExecContext(ctx, stmtCreateTags, tagIDs)
 	if err != nil {
 		tx.Rollback()
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pq.ErrorCode("23514") {
-			return 0, fmt.Errorf("%s: %w", fn, ErrInvalidTagID)
-		}
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
@@ -70,15 +62,15 @@ func (r *BannerRepository) CreateBanner(ctx context.Context, banner *domains.Ban
 		Scan(&id)
 	if err != nil {
 		tx.Rollback()
-		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pq.ErrorCode("22P02") {
-			return 0, fmt.Errorf("%s: %w", fn, ErrNotJSON)
-		}
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
-	_, err = tx.ExecContext(ctx, stmtCreateBannerRelations, tagIDs, id)
+	_, err = tx.ExecContext(ctx, stmtCreateBannerRelations, id, tagIDs, banner.FeatureID)
 	if err != nil {
 		tx.Rollback()
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pq.ErrorCode("23505") {
+			return 0, fmt.Errorf("%s: %w", fn, ErrAlreadyExists)
+		}
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
 

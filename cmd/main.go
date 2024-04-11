@@ -3,10 +3,15 @@ package main
 import (
 	"banner_service/api"
 	"banner_service/internal/config"
+	"banner_service/internal/domains"
+	"banner_service/internal/logger"
 	"banner_service/internal/repositories/postgres"
+	"banner_service/internal/services"
+	"banner_service/pkg/cache/lfu"
 	"banner_service/pkg/mux"
 	"fmt"
 	"os"
+	"time"
 
 	// _ "banner_service/docs"
 
@@ -50,9 +55,15 @@ const configPath = "configs/config.yaml"
 func main() {
 	cfg := config.New(configPath)
 
+	log := logger.New()
+
 	repository, err := postgres.New(&cfg.Database)
-	_ = repository
 	exitOnError(err)
+
+	cache := lfu.NewWithLifeCycle[domains.BannerKey, *domains.Banner](1000, time.Second)
+
+	service := services.New(log, repository, cache)
+	_ = service
 
 	swagger, err := api.GetSwagger()
 	exitOnError(err)

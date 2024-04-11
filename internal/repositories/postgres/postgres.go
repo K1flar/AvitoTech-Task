@@ -9,7 +9,7 @@ import (
 )
 
 type Repository struct {
-	*bannerrepo.BannerRepository
+	bannerrepo.BannerRepository
 }
 
 func New(cfg *config.Database) (*Repository, error) {

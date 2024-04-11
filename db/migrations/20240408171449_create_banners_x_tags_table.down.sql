@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS banners_x_tags;
+DROP TABLE IF EXISTS banner_x_tag;

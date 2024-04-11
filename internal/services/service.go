@@ -1,20 +1,14 @@
-package bannerrepo
+package services
 
 import (
-	"banner_service/internal/config"
 	"banner_service/internal/domains"
+	"banner_service/internal/services/bannerservice"
 	"banner_service/pkg/filters"
 	"context"
-	"database/sql"
-	"fmt"
+	"log/slog"
 )
 
-var (
-	ErrNotFound      = fmt.Errorf("banner not found")
-	ErrAlreadyExists = fmt.Errorf("there is already a pair that uniquely identifies the banner")
-)
-
-type BannerRepository interface {
+type Repository interface {
 	CreateBanner(ctx context.Context, banner *domains.BannerWithTagIDs) (uint32, error)
 	GetBannerByFeatureAndTagID(ctx context.Context, featureID, tagID uint32) (*domains.Banner, error)
 	GetBanners(ctx context.Context, filter *filters.BannerFilter) ([]*domains.BannerWithTagIDs, error)
@@ -22,13 +16,18 @@ type BannerRepository interface {
 	DeleteBannerByID(ctx context.Context, id uint32) error
 }
 
-type bannerRepository struct {
-	cfg *config.Database
-	db  *sql.DB
+type Cache interface {
+	Get(domains.BannerKey) (*domains.Banner, bool)
+	Set(domains.BannerKey, *domains.Banner)
+	GetFrequency(domains.BannerKey) int
 }
 
-var _ BannerRepository = (*bannerRepository)(nil)
+type Service struct {
+	bannerservice.BannerService
+}
 
-func New(cfg *config.Database, db *sql.DB) BannerRepository {
-	return &bannerRepository{cfg, db}
+func New(log *slog.Logger, repo Repository, cache Cache) *Service {
+	return &Service{
+		bannerservice.New(log, repo, cache),
+	}
 }

@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS banner_id_idx;
