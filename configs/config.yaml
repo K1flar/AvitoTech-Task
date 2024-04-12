@@ -1,5 +1,11 @@
 env: local
 
+server:
+  host: localhost
+  port: 8080
+  responseTime: 50ms
+  bannerLifeCycle: 5m
+
 database:
   dsn: postgres://postgres:postgres@localhost:5432/banner_service?sslmode=disable
   maxOpenConns: 10

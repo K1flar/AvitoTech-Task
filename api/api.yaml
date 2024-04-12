@@ -59,7 +59,7 @@ paths:
         '403':
           description: Пользователь не имеет доступа
         '404':
-          description: Баннер для не найден
+          description: Баннер не найден
         '500':
           description: Внутренняя ошибка сервера
           content:

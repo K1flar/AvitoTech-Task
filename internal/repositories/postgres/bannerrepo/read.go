@@ -25,7 +25,6 @@ const (
 			JOIN banner_x_tag AS bxt 
 			ON b.id=bxt.banner_id
 		WHERE b.feature_id = $1 AND bxt.tag_id = $2
-			AND b.is_active
 	`
 )
 
@@ -84,9 +83,7 @@ func (r *bannerRepository) GetBanners(ctx context.Context, filter *filters.Banne
 		OFFSET $%d
 	`, len(args)-1, len(args)))
 
-	fmt.Println(stmt.String())
-
-	var banners []*domains.BannerWithTagIDs
+	banners := []*domains.BannerWithTagIDs{}
 	rows, err := r.db.QueryContext(ctx, stmt.String(), args...)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", fn, err)
