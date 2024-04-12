@@ -7,12 +7,17 @@ import (
 )
 
 type Config struct {
-	Server   Server   `yaml:"server"`
-	Database Database `yaml:"database"`
+	Server   Server   `yaml:"server"`   // env-required:"true"`
+	Database Database `yaml:"database"` // env-required:"true"`
 }
 
 type Server struct {
-	ResponseTime time.Duration `yaml:"responseTime" env-default:"50ms"`
+	Host           string        `yaml:"host" env-default:"localhost"`
+	Port           string        `yaml:"port" env-default:"8080"`
+	ResponseTime   time.Duration `yaml:"responseTime" env-default:"50ms"`
+	BanneLifeCycle time.Duration `yaml:"bannerLifeCycle" env-default:"5m"`
+	UserToken      string        `env:"USER_TOKEN" env-required:"true"`
+	AdminToken     string        `env:"ADMIN_TOKEN" env-required:"true"`
 }
 
 type Database struct {
@@ -21,9 +26,12 @@ type Database struct {
 	NumberOfBannerVersions int    `yaml:"numberOfBannerVersions" env-default:"3"`
 }
 
-func New(path string) *Config {
+func New(path string) (*Config, error) {
 	var c Config
-	cleanenv.ReadConfig(path, &c)
+	err := cleanenv.ReadConfig(path, &c)
+	if err != nil {
+		return nil, err
+	}
 
-	return &c
+	return &c, nil
 }

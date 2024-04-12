@@ -14,6 +14,7 @@ var (
 	ErrNotJSON          = fmt.Errorf("content is not json")
 	ErrInvalidFeatureID = fmt.Errorf("feature id must be positive")
 	ErrInvalidTagID     = fmt.Errorf("tag id must be positive")
+	ErrNoTagIDs         = fmt.Errorf("no tag ids")
 )
 
 type BannerRepository interface {
@@ -32,7 +33,7 @@ type Cache interface {
 
 type BannerService interface {
 	CreateBanner(ctx context.Context, banner *domains.BannerWithTagIDs) (uint32, error)
-	GetBannerByFeatureAndTagID(ctx context.Context, featureID, tagID uint32) (*domains.Banner, error)
+	GetBannerByFeatureAndTagID(ctx context.Context, featureID, tagID uint32, useLastRevision, isAdmin bool) (*domains.Banner, error)
 	GetBanners(ctx context.Context, filter *filters.BannerFilter) ([]*domains.BannerWithTagIDs, error)
 	UpdateBannerByID(ctx context.Context, id uint32, banner *domains.BannerWithTagIDs) error
 	DeleteBannerByID(ctx context.Context, id uint32) error

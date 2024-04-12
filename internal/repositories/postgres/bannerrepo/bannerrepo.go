@@ -27,8 +27,6 @@ type bannerRepository struct {
 	db  *sql.DB
 }
 
-var _ BannerRepository = (*bannerRepository)(nil)
-
 func New(cfg *config.Database, db *sql.DB) BannerRepository {
 	return &bannerRepository{cfg, db}
 }

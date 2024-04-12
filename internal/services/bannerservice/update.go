@@ -14,6 +14,7 @@ func (s *bannerService) UpdateBannerByID(ctx context.Context, id uint32, banner 
 	err := validateBannerWithTagIDs(banner)
 	if err != nil {
 		s.log.Error(fmt.Sprintf("%s: %s", fn, err))
+		return fmt.Errorf("%s: %w", fn, err)
 	}
 
 	err = s.repo.UpdateBannerByID(ctx, id, banner)

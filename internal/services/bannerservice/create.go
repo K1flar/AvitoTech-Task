@@ -39,6 +39,10 @@ func validateBannerWithTagIDs(banner *domains.BannerWithTagIDs) error {
 		return ErrInvalidFeatureID
 	}
 
+	if len(banner.TagIDs) == 0 {
+		return ErrNoTagIDs
+	}
+
 	for _, tagID := range banner.TagIDs {
 		if tagID <= 0 {
 			return ErrInvalidTagID
