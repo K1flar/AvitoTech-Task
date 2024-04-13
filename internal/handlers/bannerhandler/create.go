@@ -5,6 +5,7 @@ import (
 	"banner_service/internal/models"
 	"banner_service/internal/services/bannerservice"
 	"banner_service/pkg/http/response"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -33,6 +34,9 @@ func (h *bannerHandler) PostBanner(w http.ResponseWriter, r *http.Request) {
 	id, err := h.service.CreateBanner(r.Context(), bannerWithTagIDs)
 	if err != nil {
 		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			w.WriteHeader(http.StatusRequestTimeout)
+			return
 		case errors.Is(err, bannerservice.ErrInvalidFeatureID):
 			response.JSONError(w, http.StatusBadRequest, "feature id must be positive", h.log)
 			return

@@ -5,6 +5,7 @@ import (
 	"banner_service/internal/services/bannerservice"
 	"banner_service/pkg/filters"
 	"banner_service/pkg/http/response"
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -15,7 +16,12 @@ func (h *bannerHandler) GetBanner(w http.ResponseWriter, r *http.Request) {
 
 	banners, err := h.service.GetBanners(r.Context(), filter)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			w.WriteHeader(http.StatusRequestTimeout)
+			return
+		}
 		response.JSONError(w, http.StatusInternalServerError, "unknown error", h.log)
+		return
 	}
 
 	response.JSONWithMarshal(w, http.StatusOK, banners, h.log)
@@ -25,6 +31,7 @@ func (h *bannerHandler) GetUserBanner(w http.ResponseWriter, r *http.Request) {
 	role, ok := r.Context().Value(domains.RoleKey("role")).(domains.Role)
 	if !ok {
 		w.WriteHeader(http.StatusForbidden)
+		return
 	}
 
 	var isAdmin bool
@@ -58,10 +65,15 @@ func (h *bannerHandler) GetUserBanner(w http.ResponseWriter, r *http.Request) {
 
 	banner, err := h.service.GetBannerByFeatureAndTagID(r.Context(), uint32(featureID), uint32(tagID), useLastRevision, isAdmin)
 	if err != nil {
-		if errors.Is(err, bannerservice.ErrNotFound) {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			w.WriteHeader(http.StatusRequestTimeout)
+			return
+		case errors.Is(err, bannerservice.ErrNotFound):
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+
 		response.JSONError(w, http.StatusInternalServerError, "unknown error", h.log)
 		return
 	}
