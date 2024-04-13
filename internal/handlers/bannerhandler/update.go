@@ -5,6 +5,7 @@ import (
 	"banner_service/internal/models"
 	"banner_service/internal/services/bannerservice"
 	"banner_service/pkg/http/response"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -57,6 +58,9 @@ func (h *bannerHandler) PatchBannerId(w http.ResponseWriter, r *http.Request) {
 			return
 		case errors.Is(err, bannerservice.ErrNotFound):
 			w.WriteHeader(http.StatusNotFound)
+			return
+		case errors.Is(err, context.DeadlineExceeded):
+			w.WriteHeader(http.StatusRequestTimeout)
 			return
 		}
 

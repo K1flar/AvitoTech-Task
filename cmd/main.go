@@ -13,14 +13,14 @@ import (
 	adminmw "banner_service/pkg/middlewares/admin_mw"
 	"banner_service/pkg/middlewares/auth"
 	loggermw "banner_service/pkg/middlewares/logger_mw"
+	ratelimit "banner_service/pkg/middlewares/rate_limit"
+	timelimit "banner_service/pkg/middlewares/time_limit"
 	"banner_service/pkg/mux"
 	"fmt"
+	"net/http"
 	"os"
 
 	// _ "banner_service/docs"
-
-	"net/http"
-
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -36,7 +36,6 @@ func main() {
 	repository, err := postgres.New(&cfg.Database)
 	exitOnError(err)
 
-	fmt.Println(cfg.Server.BanneLifeCycle)
 	cache := lfu.NewWithLifeCycle[domains.BannerKey, *domains.Banner](1000, cfg.Server.BanneLifeCycle)
 
 	service := services.New(log, repository, cache)
@@ -49,6 +48,14 @@ func main() {
 
 	r := mux.New()
 
+	r.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
+		b, _ := swagger.MarshalJSON()
+		w.Write(b)
+	})
+	r.HandleFunc("/swagger/", httpSwagger.Handler(httpSwagger.URL("/swagger.json")))
+
+	r.Use(ratelimit.New(cfg.Server.RPS))
+	r.Use(timelimit.New(cfg.Server.ResponseTime))
 	r.Use(loggermw.New(log))
 
 	r.Group(func(m *mux.Mux) {
@@ -65,13 +72,6 @@ func main() {
 			adminHandler.HandleFunc("DELETE /banner/{id}", handler.DeleteBannerId)
 		})
 	})
-
-	r.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
-		b, _ := swagger.MarshalJSON()
-		w.Write(b)
-	})
-
-	r.HandleFunc("/swagger/", httpSwagger.Handler(httpSwagger.URL("/swagger.json")))
 
 	fmt.Printf("Starting server on %s:%s...\n", cfg.Server.Host, cfg.Server.Port)
 	http.ListenAndServe(":8080", r)

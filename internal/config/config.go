@@ -7,8 +7,8 @@ import (
 )
 
 type Config struct {
-	Server   Server   `yaml:"server"`   // env-required:"true"`
-	Database Database `yaml:"database"` // env-required:"true"`
+	Server   Server   `yaml:"server"`
+	Database Database `yaml:"database"`
 }
 
 type Server struct {
@@ -16,6 +16,7 @@ type Server struct {
 	Port           string        `yaml:"port" env-default:"8080"`
 	ResponseTime   time.Duration `yaml:"responseTime" env-default:"50ms"`
 	BanneLifeCycle time.Duration `yaml:"bannerLifeCycle" env-default:"5m"`
+	RPS            int           `yaml:"rps" env-default:"1000"`
 	UserToken      string        `env:"USER_TOKEN" env-required:"true"`
 	AdminToken     string        `env:"ADMIN_TOKEN" env-required:"true"`
 }

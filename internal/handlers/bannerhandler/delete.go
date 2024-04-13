@@ -3,6 +3,7 @@ package bannerhandler
 import (
 	"banner_service/internal/services/bannerservice"
 	"banner_service/pkg/http/response"
+	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -17,7 +18,11 @@ func (h *bannerHandler) DeleteBannerId(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.DeleteBannerByID(r.Context(), uint32(id))
 	if err != nil {
-		if errors.Is(err, bannerservice.ErrNotFound) {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			w.WriteHeader(http.StatusRequestTimeout)
+			return
+		case errors.Is(err, bannerservice.ErrNotFound):
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
