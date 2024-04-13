@@ -7,8 +7,8 @@ import (
 )
 
 type Config struct {
-	Server   Server   `yaml:"server"`   // env-required:"true"`
-	Database Database `yaml:"database"` // env-required:"true"`
+	Server   Server   `yaml:"server"`
+	Database Database `yaml:"database"`
 }
 
 type Server struct {

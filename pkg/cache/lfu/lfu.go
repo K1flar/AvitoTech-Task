@@ -106,7 +106,7 @@ func (c *LFUCache[K, V]) Delete(key K) bool {
 		return false
 	}
 
-	deleted := c.freq[c.minFrequency].Pop(c.data[key])
+	deleted := c.freq[c.data[key].Frequency].Pop(c.data[key])
 	delete(c.data, deleted.Key)
 	c.len--
 

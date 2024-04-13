@@ -13,9 +13,11 @@ import (
 	adminmw "banner_service/pkg/middlewares/admin_mw"
 	"banner_service/pkg/middlewares/auth"
 	loggermw "banner_service/pkg/middlewares/logger_mw"
+	timelimit "banner_service/pkg/middlewares/time_limit"
 	"banner_service/pkg/mux"
 	"fmt"
 	"os"
+	"time"
 
 	// _ "banner_service/docs"
 
@@ -36,8 +38,7 @@ func main() {
 	repository, err := postgres.New(&cfg.Database)
 	exitOnError(err)
 
-	fmt.Println(cfg.Server.BanneLifeCycle)
-	cache := lfu.NewWithLifeCycle[domains.BannerKey, *domains.Banner](1000, cfg.Server.BanneLifeCycle)
+	cache := lfu.NewWithLifeCycle[domains.BannerKey, *domains.Banner](1000, 10*time.Second) //cfg.Server.BanneLifeCycle)
 
 	service := services.New(log, repository, cache)
 
@@ -49,7 +50,12 @@ func main() {
 
 	r := mux.New()
 
+	r.Use(timelimit.New(cfg))
 	r.Use(loggermw.New(log))
+
+	r.HandleFunc("GET /test", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(time.Second)
+	})
 
 	r.Group(func(m *mux.Mux) {
 		m.Use(auth.New(tokenManager))
