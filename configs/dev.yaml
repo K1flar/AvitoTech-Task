@@ -1,9 +1,10 @@
-env: local
+env: dev
 
 server:
   host: localhost
   port: 8080
   responseTime: 50ms
+  rps: 1000
   bannerLifeCycle: 5m
 
 database:

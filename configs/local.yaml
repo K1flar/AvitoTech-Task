@@ -1,0 +1,13 @@
+env: local
+
+server:
+  host: 0.0.0.0
+  port: 8080
+  responseTime: 50ms
+  rps: 1000
+  bannerLifeCycle: 5m
+
+database:
+  dsn: postgres://postgres:postgres@db:5432/banner_service?sslmode=disable
+  maxOpenConns: 10
+  numberOfBannerVersions: 3

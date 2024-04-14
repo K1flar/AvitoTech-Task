@@ -60,7 +60,7 @@ func (h *bannerHandler) PatchBannerId(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		case errors.Is(err, context.DeadlineExceeded):
-			w.WriteHeader(http.StatusRequestTimeout)
+			w.WriteHeader(http.StatusGatewayTimeout)
 			return
 		}
 

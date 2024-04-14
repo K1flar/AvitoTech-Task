@@ -6,7 +6,10 @@ import (
 	"time"
 )
 
-const DefaultCacheCapacity = 1024
+const (
+	DefaultCacheCapacity = 1024
+	DefaultValueLifeTime = 5 * time.Minute
+)
 
 type LFUCache[K comparable, V any] struct {
 	sync.Mutex
@@ -38,6 +41,9 @@ func New[K comparable, V any](cap int) *LFUCache[K, V] {
 // NewWithLifeCycle создает менеджер кеша на базе алгоритма LFU с ёмкостью cap, который будет очищать
 // данные из кеша по истечению срока жизни valueLifeTime
 func NewWithLifeCycle[K comparable, V any](cap int, valueLifeTime time.Duration) *LFUCacheWithLifeCycle[K, V] {
+	if valueLifeTime <= 0 {
+		valueLifeTime = DefaultValueLifeTime
+	}
 	c := &LFUCacheWithLifeCycle[K, V]{valueLifeTime, New[K, V](cap)}
 	go c.updateWorker()
 	return c
