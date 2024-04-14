@@ -53,7 +53,3 @@ func (m *Mux) Group(group func(*Mux)) {
 	newMux := &Mux{mux: m.mux, middlewares: middlewaresCopy}
 	group(newMux)
 }
-
-func (m *Mux) GetMux() *http.ServeMux {
-	return m.mux
-}
