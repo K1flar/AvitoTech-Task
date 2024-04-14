@@ -1,11 +1,11 @@
 package logger
 
 import (
+	"io"
 	"log/slog"
-	"os"
 )
 
-func New() *slog.Logger {
-	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+func New(w io.Writer) *slog.Logger {
+	log := slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	return log
 }

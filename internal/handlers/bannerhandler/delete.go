@@ -20,7 +20,7 @@ func (h *bannerHandler) DeleteBannerId(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
-			w.WriteHeader(http.StatusRequestTimeout)
+			w.WriteHeader(http.StatusGatewayTimeout)
 			return
 		case errors.Is(err, bannerservice.ErrNotFound):
 			w.WriteHeader(http.StatusNotFound)

@@ -17,7 +17,7 @@ func (h *bannerHandler) GetBanner(w http.ResponseWriter, r *http.Request) {
 	banners, err := h.service.GetBanners(r.Context(), filter)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			w.WriteHeader(http.StatusRequestTimeout)
+			w.WriteHeader(http.StatusGatewayTimeout)
 			return
 		}
 		response.JSONError(w, http.StatusInternalServerError, "unknown error", h.log)
@@ -67,7 +67,7 @@ func (h *bannerHandler) GetUserBanner(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):
-			w.WriteHeader(http.StatusRequestTimeout)
+			w.WriteHeader(http.StatusGatewayTimeout)
 			return
 		case errors.Is(err, bannerservice.ErrNotFound):
 			w.WriteHeader(http.StatusNotFound)
