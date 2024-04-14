@@ -33,5 +33,5 @@ type BannerKey struct {
 
 type BannerWithTagIDs struct {
 	Banner
-	TagIDs []uint32
+	TagIDs []uint32 `json:"tag_ids"`
 }
