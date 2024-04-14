@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 )
 
 var (
@@ -25,8 +26,9 @@ type BannerRepository interface {
 type bannerRepository struct {
 	cfg *config.Database
 	db  *sql.DB
+	log *slog.Logger
 }
 
-func New(cfg *config.Database, db *sql.DB) BannerRepository {
-	return &bannerRepository{cfg, db}
+func New(cfg *config.Database, db *sql.DB, log *slog.Logger) BannerRepository {
+	return &bannerRepository{cfg, db, log}
 }

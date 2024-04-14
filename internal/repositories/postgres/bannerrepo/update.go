@@ -36,24 +36,36 @@ func (r *bannerRepository) UpdateBannerByID(ctx context.Context, id uint32, bann
 
 	_, err = tx.ExecContext(ctx, stmtCreateFeature, banner.FeatureID)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return fmt.Errorf("%s: %w", fn, err)
 	}
 
 	res, err := tx.ExecContext(ctx, stmtUpdateBanner, id, banner.Content, banner.IsActive, banner.FeatureID)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return fmt.Errorf("%s: %w", fn, err)
 	}
 
 	rowsAff, err := res.RowsAffected()
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return fmt.Errorf("%s: %w", fn, err)
 	}
 
 	if rowsAff == 0 {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return fmt.Errorf("%s: %w", fn, ErrNotFound)
 	}
 
@@ -63,19 +75,28 @@ func (r *bannerRepository) UpdateBannerByID(ctx context.Context, id uint32, bann
 	}
 	_, err = tx.ExecContext(ctx, stmtCreateTags, tagIDs)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return fmt.Errorf("%s: %w", fn, err)
 	}
 
 	_, err = tx.ExecContext(ctx, stmtDeleteBannerRelations, id)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return fmt.Errorf("%s: %w", fn, err)
 	}
 
 	_, err = tx.ExecContext(ctx, stmtCreateBannerRelations, id, tagIDs, banner.FeatureID)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pq.ErrorCode("23505") {
 			return fmt.Errorf("%s: %w", fn, ErrAlreadyExists)
 		}

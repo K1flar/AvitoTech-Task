@@ -34,7 +34,6 @@ func (r *bannerRepository) GetBannerByFeatureAndTagID(ctx context.Context, featu
 	var banner domains.Banner
 	err := r.db.QueryRowContext(ctx, stmtGetBannerByFeatureAndTagID, featureID, tagID).
 		Scan(&banner.ID, &banner.Content, &banner.CreatedAt, &banner.UpdatedAt, &banner.IsActive, &banner.FeatureID)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("%s: %w", fn, ErrNotFound)

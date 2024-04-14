@@ -14,11 +14,16 @@ type testApp struct {
 }
 
 func (a *testApp) mustClearDB() {
-	a.db.Exec(`DELETE FROM features`)
-	a.db.Exec(`DELETE FROM tags`)
-	a.db.Exec(`DELETE FROM banners`)
-	a.db.Exec(`DELETE FROM banner_x_tags`)
-	a.db.Exec("ALTER SEQUENCE banners_id_seq RESTART WITH 1")
+	_, err := a.db.Exec(`DELETE FROM features`)
+	panicOnErr(err)
+	_, err = a.db.Exec(`DELETE FROM tags`)
+	panicOnErr(err)
+	_, err = a.db.Exec(`DELETE FROM banners`)
+	panicOnErr(err)
+	_, err = a.db.Exec(`DELETE FROM banner_x_tags`)
+	panicOnErr(err)
+	_, err = a.db.Exec("ALTER SEQUENCE banners_id_seq RESTART WITH 1")
+	panicOnErr(err)
 }
 
 func (a *testApp) mustAddBanner(banner *domains.Banner, tagIDs []int) {
@@ -26,23 +31,33 @@ func (a *testApp) mustAddBanner(banner *domains.Banner, tagIDs []int) {
 	for _, tagID := range tagIDs {
 		pqTagIDs = append(pqTagIDs, int64(tagID))
 	}
-	a.db.Exec(`
+	_, err := a.db.Exec(`
 		INSERT INTO features(id)
 		VALUES ($1)
 		ON CONFLICT (id) DO NOTHING
 	`, banner.FeatureID)
-	a.db.Exec(`
+	panicOnErr(err)
+	_, err = a.db.Exec(`
 		INSERT INTO tags(id)
 		SELECT unnest($1::INTEGER[])
 		ON CONFLICT (id) DO NOTHING
 	`, pqTagIDs)
-	a.db.Exec(`
+	panicOnErr(err)
+	_, err = a.db.Exec(`
 		INSERT INTO banners(id, content, is_active, feature_id)
 		VALUES ($1, $2::JSONB, $3, $4)
 		RETURNING id
 	`, banner.ID, banner.Content, banner.IsActive, banner.FeatureID)
-	a.db.Exec(`
+	panicOnErr(err)
+	_, err = a.db.Exec(`
 		INSERT INTO banner_x_tag(banner_id, tag_id, feature_id)
 		SELECT $1 AS banner_id, unnest($2::INTEGER[]), $3
 	`, banner.ID, pqTagIDs, banner.FeatureID)
+	panicOnErr(err)
+}
+
+func panicOnErr(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

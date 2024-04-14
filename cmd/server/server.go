@@ -30,7 +30,7 @@ type App struct {
 func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 	tokenManager := tokenmanager.New(cfg.Server.UserToken, cfg.Server.AdminToken)
 
-	repository, err := postgres.New(&cfg.Database)
+	repository, err := postgres.New(&cfg.Database, log)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,10 @@ func New(cfg *config.Config, log *slog.Logger) (*App, error) {
 
 	r.HandleFunc("/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		b, _ := swagger.MarshalJSON()
-		w.Write(b)
+		_, err := w.Write(b)
+		if err != nil {
+			log.Error(fmt.Sprintf("swagger.json: %s", err))
+		}
 	})
 	r.HandleFunc("/swagger/", httpSwagger.Handler(httpSwagger.URL("/swagger.json")))
 
