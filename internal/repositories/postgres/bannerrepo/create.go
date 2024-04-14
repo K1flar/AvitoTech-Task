@@ -43,7 +43,10 @@ func (r *bannerRepository) CreateBanner(ctx context.Context, banner *domains.Ban
 
 	_, err = tx.ExecContext(ctx, stmtCreateFeature, banner.FeatureID)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
@@ -53,7 +56,10 @@ func (r *bannerRepository) CreateBanner(ctx context.Context, banner *domains.Ban
 	}
 	_, err = tx.ExecContext(ctx, stmtCreateTags, tagIDs)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
@@ -61,13 +67,19 @@ func (r *bannerRepository) CreateBanner(ctx context.Context, banner *domains.Ban
 	err = tx.QueryRowContext(ctx, stmtCreateBanner, banner.Content, banner.IsActive, banner.FeatureID).
 		Scan(&id)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		return 0, fmt.Errorf("%s: %w", fn, err)
 	}
 
 	_, err = tx.ExecContext(ctx, stmtCreateBannerRelations, id, tagIDs, banner.FeatureID)
 	if err != nil {
-		tx.Rollback()
+		txErr := tx.Rollback()
+		if txErr != nil {
+			r.log.Error(fmt.Sprintf("%s: tx error: %s", fn, txErr))
+		}
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == pq.ErrorCode("23505") {
 			return 0, fmt.Errorf("%s: %w", fn, ErrAlreadyExists)
 		}
